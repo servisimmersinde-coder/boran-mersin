@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boran Mersin - Yonetim Paneli</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333}
+.header{background:linear-gradient(135deg,#FF6B00,#FF8C33);color:#fff;padding:20px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,0.2)}
+.header h1{font-size:24px}
+.header .user-info{display:flex;align-items:center;gap:10px}
+.header button{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+.header button:hover{background:rgba(255,255,255,0.3)}
+.container{display:flex;min-height:calc(100vh - 70px)}
+.sidebar{width:240px;background:#fff;box-shadow:2px 0 10px rgba(0,0,0,0.05);padding:20px 0}
+.sidebar a{display:flex;align-items:center;gap:12px;padding:12px 24px;color:#666;text-decoration:none;font-size:15px;transition:all 0.2s}
+.sidebar a:hover,.sidebar a.active{background:#FFF0E0;color:#FF6B00;border-right:3px solid #FF6B00}
+.sidebar a .icon{font-size:20px;width:24px;text-align:center}
+.main{flex:1;padding:30px;overflow-y:auto}
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}
+.stat-card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.stat-card .label{font-size:14px;color:#999;margin-bottom:8px}
+.stat-card .value{font-size:32px;font-weight:bold;color:#FF6B00}
+.stat-card .sub{font-size:13px;color:#666;margin-top:4px}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px}
+.card h2{font-size:20px;margin-bottom:16px;color:#333}
+.card h3{font-size:16px;margin-bottom:12px;color:#FF6B00}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #f0f0f0;font-size:14px}
+th{background:#f8f9fa;font-weight:600;color:#666}
+tr:hover{background:#FFF8F0}
+.badge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:#fff}
+.badge-bekliyor{background:#FFC107;color:#333}
+.badge-atandi{background:#2196F3}
+.badge-alindi{background:#9C27B0}
+.badge-yolda{background:#FF9800}
+.badge-teslim{background:#4CAF50}
+.badge-iptal{background:#F44336}
+.badge-aktif{background:#4CAF50}
+.badge-pasif{background:#ccc;color:#666}
+.badge-beklemede{background:#FFC107;color:#333}
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s}
+.btn-primary{background:#FF6B00;color:#fff}.btn-primary:hover{background:#E65C00}
+.btn-success{background:#4CAF50;color:#fff}.btn-success:hover{background:#388E3C}
+.btn-danger{background:#F44336;color:#fff}.btn-danger:hover{background:#D32F2F}
+.btn-sm{padding:5px 10px;font-size:12px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:#333}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;transition:border 0.2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#FF6B00}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.hidden{display:none !important}
+.toast{position:fixed;top:20px;right:20px;padding:16px 24px;border-radius:12px;color:#fff;font-weight:600;z-index:9999;animation:slideIn 0.3s}
+.toast-success{background:#4CAF50}.toast-error{background:#F44336}.toast-info{background:#2196F3}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+.musait-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:6px}
+.musait-true{background:#4CAF50}.musait-false{background:#ccc}
+.empty{text-align:center;padding:40px;color:#999}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #eee}
+.tab-btn{padding:12px 24px;background:none;border:none;font-size:15px;color:#999;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab-btn.active{color:#FF6B00;border-bottom-color:#FF6B00;font-weight:600}
+.map-placeholder{width:100%;height:400px;background:#e8e8e8;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#999;font-size:16px}
+label input:checked + span:first-of-type{background:#4CAF50}
+label input:not(:checked) + span:first-of-type{background:#ccc}
+</style>
+</head>
+<body>
+
+<!-- LOGIN EKRANI -->
+<div id="loginEkran" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:linear-gradient(135deg,#FF6B00,#FF8C33);padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:30px;width:420px;max-width:95%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
+    <div style="font-size:48px;margin-bottom:10px">&#128666;</div>
+    <h1 style="color:#FF6B00;margin-bottom:5px">Boran Mersin</h1>
+    <p style="color:#999;margin-bottom:30px">Kurye Havuz Yonetim Paneli</p>
+    
+    <div style="text-align:left">
+      <div class="form-group">
+        <label>Telefon Numarasi</label>
+        <input type="tel" id="loginTel" placeholder="05XXXXXXXXX" value="05000000000">
+      </div>
+      <div class="form-group">
+        <label>Sifre</label>
+        <input type="password" id="loginSifre" placeholder="Sifreniz" value="admin123">
+      </div>
+      <div class="form-group">
+        <label>Giris Turu</label>
+        <select id="loginRol">
+          <option value="admin">Admin (Yonetici)</option>
+          <option value="kurye">Kurye</option>
+          <option value="isletme">Isletme</option>
+        </select>
+      </div>
+      <button id="girisBtn" style="width:100%;padding:16px;font-size:18px;font-weight:bold;margin-top:10px;background:#FF6B00;color:#fff;border:2px solid #E65C00;border-radius:12px;cursor:pointer;display:block" onclick="girisYap()">GIRIS YAP</button>
+    </div>
+    
+    <div style="margin-top:20px;font-size:13px;color:#999">
+      <p>Test Hesaplari:</p>
+      <p><b>Admin:</b> 05000000000 / admin123</p>
+      <p><b>Kurye:</b> 05551112233 / 123456</p>
+      <p><b>Isletme:</b> 05332223344 / 123456</p>
+    </div>
+  </div>
+</div>
+
+<!-- ANA UYGULAMA -->
+<div id="anaUygulama" class="hidden">
+  <div class="header">
+    <h1>&#128666; Boran Mersin</h1>
+    <div class="user-info">
+      <span id="headerKullanici"></span>
+      <button onclick="cikisYap()">Cikis Yap</button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="main" id="mainContent"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api';
+let token = '';
+let kullanici = null;
+let aktifSayfa = '';
+
+async function apiCall(yol, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  try {
+    const res = await fetch(API + yol, { ...options, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.hata || 'Hata');
+    return data;
+  } catch (hata) {
+    toast(hata.message, 'error');
+    throw hata;
+  }
+}
+
+function toast(mesaj, tip = 'info') {
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + tip;
+  t.textContent = mesaj;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+async function girisYap() {
+  const telefon = document.getElementById('loginTel').value;
+  const sifre = document.getElementById('loginSifre').value;
+  const rol = document.getElementById('loginRol').value;
+  
+  try {
+    const sonuc = await apiCall('/auth/giris', {
+      method: 'POST',
+      body: JSON.stringify({ telefon, sifre, rol })
+    });
+    token = sonuc.token;
+    kullanici = sonuc.kullanici;
+    document.getElementById('loginEkran').classList.add('hidden');
+    document.getElementById('anaUygulama').classList.remove('hidden');
+    document.getElementById('headerKullanici').textContent = kullanici.ad_soyad + ' (' + kullanici.rol + ')';
+    menuyuOlustur();
+    const ilkSayfa = kullanici.rol === 'admin' ? 'dashboard' : kullanici.rol === 'kurye' ? 'kurye-harita' : 'isletme-dashboard';
+    sayfaYukle(ilkSayfa);
+    toast('Giris basarili!', 'success');
+  } catch (hata) { /* apiCall toast yapiyor */ }
+}
+
+function cikisYap() {
+  token = '';
+  kullanici = null;
+  document.getElementById('loginEkran').classList.remove('hidden');
+  document.getElementById('anaUygulama').classList.add('hidden');
+}
+
+function menuyuOlustur() {
+  const sidebar = document.getElementById('sidebar');
+  let menu = '';
+  
+  if (kullanici.rol === 'admin') {
+    menu = `
+      <a href="#" onclick="sayfaYukle('dashboard')" id="nav-dashboard"><span class="icon">&#128202;</span> Dashboard</a>
+      <a href="#" onclick="sayfaYukle('kurye-harita')" id="nav-kurye-harita"><span class="icon">&#128506;</span> Canli Harita</a>
+      <a href="#" onclick="sayfaYukle('kuryeler')" id="nav-kuryeler"><span class="icon">&#128666;</span> Kuryeler</a>
+      <a href="#" onclick="sayfaYukle('isletmeler')" id="nav-isletmeler"><span class="icon">&#127978;</span> Isletmeler</a>
+      <a href="#" onclick="sayfaYukle('siparisler')" id="nav-siparisler"><span class="icon">&#128230;</span> Siparisler</a>
+      <a href="#" onclick="sayfaYukle('finansal')" id="nav-finansal"><span class="icon">&#128176;</span> Finansal</a>
+    `;
+  } else if (kullanici.rol === 'kurye') {
+    menu = `
+      <a href="#" onclick="sayfaYukle('kurye-harita')" id="nav-kurye-harita"><span class="icon">&#128506;</span> Harita</a>
+      <a href="#" onclick="sayfaYukle('kurye-siparisler')" id="nav-kurye-siparisler"><span class="icon">&#128230;</span> Siparislerim</a>
+      <a href="#" onclick="sayfaYukle('kurye-kazanc')" id="nav-kurye-kazanc"><span class="icon">&#128176;</span> Kazancim</a>
+      <a href="#" onclick="sayfaYukle('kurye-profil')" id="nav-kurye-profil"><span class="icon">&#128100;</span> Profilim</a>
+    `;
+  } else if (kullanici.rol === 'isletme') {
+    menu = `
+      <a href="#" onclick="sayfaYukle('isletme-dashboard')" id="nav-isletme-dashboard"><span class="icon">&#128202;</span> Dashboard</a>
+      <a href="#" onclick="sayfaYukle('isletme-yeni-siparis')" id="nav-isletme-yeni-siparis"><span class="icon">&#10133;</span> Yeni Siparis</a>
+      <a href="#" onclick="sayfaYukle('isletme-siparisler')" id="nav-isletme-siparisler"><span class="icon">&#128230;</span> Siparislerim</a>
+      <a href="#" onclick="sayfaYukle('isletme-profil')" id="nav-isletme-profil"><span class="icon">&#127978;</span> Isletme Profili</a>
+    `;
+  }
+  sidebar.innerHTML = menu;
+}
+
+async function sayfaYukle(sayfa) {
+  aktifSayfa = sayfa;
+  document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+  const nav = document.getElementById('nav-' + sayfa);
+  if (nav) nav.classList.add('active');
+  
+  const main = document.getElementById('mainContent');
+  
+  switch(sayfa) {
+    case 'dashboard': await dashboardYukle(main); break;
+    case 'kurye-harita': await adminHaritaYukle(main); break;
+    case 'kuryeler': await kuryelerYukle(main); break;
+    case 'isletmeler': await isletmelerYukle(main); break;
+    case 'siparisler': await siparislerYukle(main); break;
+    case 'finansal': await finansalYukle(main); break;
+    case 'kurye-harita': await kuryeHaritaYukle(main); break;
+    case 'kurye-siparisler': await kuryeSiparislerYukle(main); break;
+    case 'kurye-kazanc': await kuryeKazancYukle(main); break;
+    case 'kurye-profil': await kuryeProfilYukle(main); break;
+    case 'isletme-dashboard': await isletmeDashboardYukle(main); break;
+    case 'isletme-yeni-siparis': await isletmeYeniSiparisYukle(main); break;
+    case 'isletme-siparisler': await isletmeSiparislerYukle(main); break;
+    case 'isletme-profil': await isletmeProfilYukle(main); break;
+  }
+}
+
+function durumBadge(durum) {
+  return `<span class="badge badge-${durum}">${durum.toUpperCase()}</span>`;
+}
+
+function durumBadgeKullanici(durum) {
+  return `<span class="badge badge-${durum}">${durum}</span>`;
+}
+
+// ===== ADMIN SAYFALARI =====
+
+async function dashboardYukle(el) {
+  const veri = await apiCall('/admin/dashboard');
+  const i = veri.istatistikler;
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Dashboard</h2>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="label">Toplam Kurye</div><div class="value">${i.toplam_kurye}</div><div class="sub">${i.musait_kurye} musait</div></div>
+      <div class="stat-card"><div class="label">Toplam Isletme</div><div class="value">${i.toplam_isletme}</div></div>
+      <div class="stat-card"><div class="label">Aktif Siparis</div><div class="value">${i.aktif_siparis}</div></div>
+      <div class="stat-card"><div class="label">Tamamlanan</div><div class="value">${i.tamamlanan_siparis}</div></div>
+      <div class="stat-card"><div class="label">Toplam Gelir</div><div class="value">${i.toplam_gelir} TL</div></div>
+    </div>
+    <div class="card">
+      <h3>Son 7 Gun Siparis Dagilimi</h3>
+      <div style="display:flex;align-items:flex-end;gap:8px;height:200px;padding-top:20px">
+        ${veri.gunluk_siparisler.map(g => {
+          const max = Math.max(...veri.gunluk_siparisler.map(x => x.sayi), 1);
+          const yukseklik = Math.max((g.sayi / max) * 160, 4);
+          return `<div style="flex:1;text-align:center"><div style="background:#FF6B00;border-radius:4px 4px 0 0;height:${yukseklik}px;margin:0 auto;width:80%"></div><div style="font-size:11px;color:#999;margin-top:4px">${g.tarih.split('-')[2]}/${g.tarih.split('-')[1]}</div><div style="font-size:13px;font-weight:bold">${g.sayi}</div></div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function kuryelerYukle(el) {
+  const kuryeler = await apiCall('/admin/kuryeler');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Kurye Yonetimi</h2>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="label">Toplam</div><div class="value">${kuryeler.length}</div></div>
+      <div class="stat-card"><div class="label">Aktif Hesap</div><div class="value" style="color:#4CAF50">${kuryeler.filter(k => k.kullanici.durum === 'aktif').length}</div></div>
+      <div class="stat-card"><div class="label">Musait</div><div class="value" style="color:#2196F3">${kuryeler.filter(k => k.musait).length}</div></div>
+      <div class="stat-card"><div class="label">Molada</div><div class="value" style="color:#F44336">${kuryeler.filter(k => k.kurye_durum === 'mola').length}</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
+      ${kuryeler.length === 0 ? '<div class="card"><div class="empty"><div class="icon">&#128666;</div>Henuz kurye yok</div></div>' : ''}
+      ${kuryeler.map(k => `
+        <div class="card" style="border-top:4px solid ${durumRenkleri[k.kurye_durum] || '#ccc'}">
+          <div style="display:flex;justify-content:space-between;align-items:start">
+            <div>
+              <b style="font-size:16px">${k.kullanici.ad_soyad}</b>
+              <div style="font-size:13px;color:#999">${k.kullanici.telefon}</div>
+            </div>
+            <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:bold;color:#fff;background:${durumRenkleri[k.kurye_durum] || '#999'}">${durumMetinleri[k.kurye_durum] || k.kurye_durum}</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:13px">
+            <div>&#128665; ${k.arac_tipi} ${k.plaka ? '(' + k.plaka + ')' : ''}</div>
+            <div>&#11088; ${k.puan} | ${k.toplam_teslim} teslimat</div>
+          </div>
+
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px">&#128197; Calisma Saati (Slot)</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="time" id="bas_${k.id}" value="${k.calisma_baslangic || '09:00'}" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" onchange="slotGuncelle(${k.id})">
+              <span style="color:#999">-</span>
+              <input type="time" id="bit_${k.id}" value="${k.calisma_bitis || '22:00'}" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px" onchange="slotGuncelle(${k.id})">
+              <button class="btn btn-primary btn-sm" onclick="slotGuncelle(${k.id})">Kaydet</button>
+            </div>
+          </div>
+
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;font-weight:600">Musaitlik</span>
+              <label style="position:relative;display:inline-block;width:50px;height:26px;cursor:pointer">
+                <input type="checkbox" ${k.musait ? 'checked' : ''} onchange="kuryeMusaitlikDegistir(${k.id}, this.checked)" style="opacity:0;width:0;height:0">
+                <span style="position:absolute;inset:0;background:${k.musait ? '#4CAF50' : '#ccc'};border-radius:13px;transition:0.3s"></span>
+                <span style="position:absolute;height:20px;width:20px;left:${k.musait ? '26px' : '3px'};bottom:3px;background:#fff;border-radius:50%;transition:0.3s"></span>
+              </label>
+            </div>
+          </div>
+
+          ${k.kurye_durum === 'mola' ? `
+            <div style="margin-top:8px;padding:8px 12px;background:#FFF3F0;border-radius:8px;font-size:13px;color:#F44336">
+              &#9749; Molada - Bugun toplam ${k.toplam_mola_dk || 0} dk mola
+            </div>
+          ` : ''}
+
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;display:flex;gap:6px;flex-wrap:wrap">
+            ${k.kullanici.durum === 'beklemede' ? `<button class="btn btn-success btn-sm" onclick="kuryeOnayla(${k.kullanici.id})">&#10003; Onayla</button>` : ''}
+            <button class="btn ${k.kullanici.durum === 'aktif' ? 'btn-danger' : 'btn-success'} btn-sm" onclick="kuryeDurumDegistir(${k.kullanici.id}, '${k.kullanici.durum === 'aktif' ? 'pasif' : 'aktif'}')">${k.kullanici.durum === 'aktif' ? 'Pasif Yap' : 'Aktif Yap'}</button>
+            <button class="btn btn-sm" style="background:#FFF3F0;color:#F44336;border:1px solid #F44336" onclick="kuryeMolaBaslat(${k.id})">&#9749; Mola</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function slotGuncelle(kuryeId) {
+  const bas = document.getElementById('bas_' + kuryeId).value;
+  const bit = document.getElementById('bit_' + kuryeId).value;
+  await apiCall('/admin/kurye/' + kuryeId + '/slot', { method: 'PUT', body: JSON.stringify({ calisma_baslangic: bas, calisma_bitis: bit }) });
+  toast('Calisma saati guncellendi', 'success');
+}
+
+async function kuryeMolaBaslat(kuryeId) {
+  await apiCall('/admin/kurye/' + kuryeId + '/mola', { method: 'PUT', body: JSON.stringify({ mola: true }) });
+  toast('Mola baslatildi', 'info');
+  sayfaYukle('kuryeler');
+}
+
+async function kuryeMusaitlikDegistir(kuryeId, musait) {
+  await apiCall('/admin/kurye/' + kuryeId + '/musaitlik', { method: 'PUT', body: JSON.stringify({ musait }) });
+  toast(musait ? 'Kurye musait yapildi' : 'Kurye mesegul yapildi', 'success');
+  sayfaYukle('kuryeler');
+}
+
+async function kuryeOnayla(id) {
+  await apiCall('/admin/kullanici/' + id + '/onayla', { method: 'PUT' });
+  toast('Kurye onaylandi', 'success');
+  sayfaYukle('kuryeler');
+}
+
+async function kuryeDurumDegistir(id, durum) {
+  await apiCall('/admin/kurye/' + id, { method: 'PUT', body: JSON.stringify({ durum }) });
+  toast('Durum guncellendi', 'success');
+  sayfaYukle('kuryeler');
+}
+
+async function isletmelerYukle(el) {
+  const isletmeler = await apiCall('/admin/isletmeler');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Isletme Yonetimi</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Isletme</th><th>Tur</th><th>Telefon</th><th>Adres</th><th>Durum</th><th>Islem</th></tr></thead>
+        <tbody>
+          ${isletmeler.length === 0 ? '<tr><td colspan="6" class="empty">Henuz isletme yok</td></tr>' : ''}
+          ${isletmeler.map(i => `
+            <tr>
+              <td><b>${i.isletme_adi}</b></td>
+              <td>${i.isletme_turu}</td>
+              <td>${i.kullanici.telefon}</td>
+              <td>${(i.adres || '').substring(0, 40)}${i.adres && i.adres.length > 40 ? '...' : ''}</td>
+              <td>${durumBadgeKullanici(i.kullanici.durum)}</td>
+              <td>
+                ${i.kullanici.durum === 'beklemede' ? `<button class="btn btn-success btn-sm" onclick="isletmeOnayla(${i.kullanici.id})">Onayla</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="isletmeDurumDegistir(${i.kullanici.id}, '${i.kullanici.durum === 'aktif' ? 'pasif' : 'aktif'}')">${i.kullanici.durum === 'aktif' ? 'Pasif Yap' : 'Aktif Yap'}</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function isletmeOnayla(id) {
+  await apiCall('/admin/kullanici/' + id + '/onayla', { method: 'PUT' });
+  toast('Isletme onaylandi', 'success');
+  sayfaYukle('isletmeler');
+}
+
+async function isletmeDurumDegistir(id, durum) {
+  await apiCall('/admin/isletme/' + id, { method: 'PUT', body: JSON.stringify({ durum }) });
+  toast('Durum guncellendi', 'success');
+  sayfaYukle('isletmeler');
+}
+
+async function siparislerYukle(el) {
+  const [veri, musaitKuryeler] = await Promise.all([
+    apiCall('/admin/siparisler'),
+    apiCall('/admin/musait-kuryeler')
+  ]);
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Tum Siparisler</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Siparis No</th><th>Isletme</th><th>Kurye</th><th>Alici</th><th>Ucret</th><th>Durum</th><th>Atama</th></tr></thead>
+        <tbody>
+          ${veri.siparisler.length === 0 ? '<tr><td colspan="7" class="empty">Henuz siparis yok</td></tr>' : ''}
+          ${veri.siparisler.map(s => `
+            <tr>
+              <td><b>#${s.siparis_no}</b></td>
+              <td>${s.isletme ? s.isletme.isletme_adi : '-'}</td>
+              <td>${s.kurye && s.kurye.kullanici ? s.kurye.kullanici.ad_soyad : '<span style="color:#F44336">Atanmadi</span>'}</td>
+              <td>${s.alic_ad}</td>
+              <td><b>${s.ucret} TL</b></td>
+              <td>${durumBadge(s.durum)}</td>
+              <td>
+                ${['teslim', 'iptal'].includes(s.durum) ? '<span style="color:#999">-</span>' : `
+                  <select onchange="kuryeAta(${s.id}, this.value)" style="padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;max-width:140px">
+                    <option value="">Sec...</option>
+                    ${s.kurye ? `<option value="_kaldir" style="color:#F44336">Kuryeyi Kaldir</option>` : ''}
+                    ${musaitKuryeler.map(k => `<option value="${k.id}" ${s.kurye && s.kurye.id === k.id ? 'selected' : ''}>${k.kullanici.ad_soyad} (${k.arac_tipi})</option>`).join('')}
+                  </select>
+                `}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function kuryeAta(siparisId, kuryeId) {
+  if (!kuryeId) return;
+  if (kuryeId === '_kaldir') {
+    await apiCall('/admin/siparis/' + siparisId + '/atama', { method: 'PUT', body: JSON.stringify({ kurye_id: null }) });
+    toast('Kurye atamasi kaldirildi', 'info');
+  } else {
+    await apiCall('/admin/siparis/' + siparisId + '/atama', { method: 'PUT', body: JSON.stringify({ kurye_id: parseInt(kuryeId) }) });
+    toast('Kurye atandı', 'success');
+  }
+  sayfaYukle('siparisler');
+}
+
+async function finansalYukle(el) {
+  const veri = await apiCall('/admin/finansal');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Finansal Raporlar</h2>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="label">Toplam Gelir (Komisyon)</div><div class="value">${veri.toplam_gelir} TL</div></div>
+      <div class="stat-card"><div class="label">Toplam Kurye Kazanci</div><div class="value">${veri.toplam_kurye_kazanc} TL</div></div>
+      <div class="stat-card"><div class="label">Toplam Odenen</div><div class="value">${veri.toplam_odeme} TL</div></div>
+    </div>
+    <div class="card">
+      <h3>Son Islemler</h3>
+      <table>
+        <thead><tr><th>Kullanici</th><th>Islem</th><th>Tutar</th><th>Siparis</th><th>Tarih</th></tr></thead>
+        <tbody>
+          ${veri.son_islemler.length === 0 ? '<tr><td colspan="5" class="empty">Henuz islem yok</td></tr>' : ''}
+          ${veri.son_islemler.map(islem => `
+            <tr>
+              <td>${islem.kullanici ? islem.kullanici.ad_soyad : '-'} (${islem.kullanici ? islem.kullanici.rol : ''})</td>
+              <td>${islem.aciklama || islem.tip}</td>
+              <td style="color:${islem.tip === 'kazanc' ? '#4CAF50' : '#F44336'};font-weight:bold">${islem.tip === 'kazanc' ? '+' : '-'}${islem.tutar} TL</td>
+              <td>${islem.siparis ? '#' + islem.siparis.siparis_no : '-'}</td>
+              <td>${new Date(islem.olusturma_tarihi).toLocaleDateString('tr-TR')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ===== ADMIN HARITA + KURYE TAKIP =====
+
+const durumRenkleri = { bos:'#4CAF50', siparis_aldi:'#FF9800', isletmede:'#9C27B0', yolda:'#2196F3', teslimde:'#00BCD4', mola:'#F44336' };
+const durumMetinleri = { bos:'Bos', siparis_aldi:'Siparis Aldi', isletmede:'Isletmede', yolda:'Yolda', teslimde:'Teslimde', mola:'Molada' };
+
+async function adminHaritaYukle(el) {
+  const kuryeler = await apiCall('/admin/kurye-konumlari');
+  
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2>Anlik Kurye Takibi</h2>
+      <button class="btn btn-primary" onclick="sayfaYukle('kurye-harita')">&#128260; Yenile</button>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><div class="label">Toplam Kurye</div><div class="value">${kuryeler.length}</div></div>
+      <div class="stat-card"><div class="label">Bos (Musait)</div><div class="value" style="color:#4CAF50">${kuryeler.filter(k => k.kurye_durum === 'bos').length}</div></div>
+      <div class="stat-card"><div class="label">Siparis Tasiyor</div><div class="value" style="color:#2196F3">${kuryeler.filter(k => ['siparis_aldi','isletmede','yolda','teslimde'].includes(k.kurye_durum)).length}</div></div>
+      <div class="stat-card"><div class="label">Molada</div><div class="value" style="color:#F44336">${kuryeler.filter(k => k.kurye_durum === 'mola').length}</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
+      <div class="card" style="padding:0;overflow:hidden;min-height:500px">
+        <div id="adminMap" style="width:100%;height:500px;background:#e8e8e8;display:flex;align-items:center;justify-content:center">
+          <div style="text-align:center">
+            <div style="font-size:64px">&#128506;</div>
+            <p>Harita gorunumu</p>
+            <p style="font-size:12px;color:#666;margin-top:8px">Google Maps API key gerektirir</p>
+          </div>
+        </div>
+      </div>
+      <div style="max-height:540px;overflow-y:auto">
+        ${kuryeler.length === 0 ? '<div class="card"><div class="empty">Konum verisi olan kurye yok</div></div>' : ''}
+        ${kuryeler.map(k => `
+          <div class="card" style="margin-bottom:10px;padding:14px;border-left:4px solid ${durumRenkleri[k.kurye_durum] || '#999'}">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <b>${k.ad_soyad}</b>
+                <div style="font-size:12px;color:#999">${k.arac_tipi} | Puan: ${k.puan} | ${k.toplam_teslim} teslimat</div>
+              </div>
+              <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:bold;color:#fff;background:${durumRenkleri[k.kurye_durum] || '#999'}">${durumMetinleri[k.kurye_durum] || k.kurye_durum}</span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:#666">
+              &#128337; Calisma: ${k.calisma_baslangic} - ${k.calisma_bitis}
+            </div>
+            ${k.kurye_durum === 'mola' ? `
+              <div style="margin-top:6px;padding:6px 10px;background:#FFF3F0;border-radius:6px;font-size:12px;color:#F44336">
+                &#9749; Molada: <b>${k.mola_sure_dk} dk</b> gecti (Toplam: ${k.toplam_mola_dk} dk)
+              </div>
+            ` : ''}
+            ${k.aktif_siparis_id ? `<div style="margin-top:4px;font-size:12px;color:#FF6B00">&#128230; Aktif Siparis #${k.aktif_siparis_id}</div>` : ''}
+            <div style="margin-top:6px;font-size:11px;color:#999">Son konum: ${k.son_konum ? new Date(k.son_konum).toLocaleTimeString('tr-TR') : 'Yok'}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ===== KURYE SAYFALARI =====
+
+async function kuryeHaritaYukle(el) {
+  const kurye = await apiCall('/kurye/profil');
+  const musait = kurye.ekBilgi ? kurye.ekBilgi.musait : false;
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Harita</h2>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3>Musaitlik Durumu</h3>
+        <button class="btn ${musait ? 'btn-success' : 'btn-danger'}" onclick="musaitlikDegistir()">${musait ? 'MUSAITIM' : 'MESEGULUM'}</button>
+      </div>
+      <div class="map-placeholder">
+        <div style="text-align:center">
+          <div style="font-size:64px;margin-bottom:10px">&#128506;</div>
+          <p>Harita gorunumu - Mobil uygulamada calisiyor</p>
+          <p style="font-size:13px;margin-top:8px">Konumunuz: ${kurye.ekBilgi && kurye.ekBilgi.enlem ? kurye.ekBilgi.enlem + ', ' + kurye.ekBilgi.boylam : 'Bilinmiyor'}</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function musaitlikDegistir() {
+  await apiCall('/kurye/musaitlik', { method: 'PUT' });
+  toast('Musaitlik degistirildi', 'success');
+  sayfaYukle('kurye-harita');
+}
+
+async function kuryeSiparislerYukle(el) {
+  const aktif = await apiCall('/kurye/aktif-siparislerim');
+  const gecmis = await apiCall('/kurye/siparislerim');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Siparislerim</h2>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="this.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('aktifTab').classList.remove('hidden');document.getElementById('gecmisTab').classList.add('hidden')">Aktif (${aktif.length})</button>
+      <button class="tab-btn" onclick="this.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('gecmisTab').classList.remove('hidden');document.getElementById('aktifTab').classList.add('hidden')">Gecmis (${gecmis.length})</button>
+    </div>
+    <div id="aktifTab">
+      ${aktif.length === 0 ? '<div class="card"><div class="empty"><div class="icon">&#128230;</div>Aktif siparis yok</div></div>' : ''}
+      ${aktif.map(s => siparisKarti(s, true)).join('')}
+    </div>
+    <div id="gecmisTab" class="hidden">
+      ${gecmis.length === 0 ? '<div class="card"><div class="empty"><div class="icon">&#128230;</div>Gecmis siparis bulunamadi</div></div>' : ''}
+      ${gecmis.map(s => siparisKarti(s, false)).join('')}
+    </div>
+  `;
+}
+
+function siparisKarti(s, aktif) {
+  return `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <b style="font-size:16px">#${s.siparis_no}</b>
+        ${durumBadge(s.durum)}
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="margin-bottom:4px">&#128205; <b>Alis:</b> ${s.gonderen_adres}</div>
+        <div>&#128681; <b>Teslim:</b> ${s.alic_adres}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid #eee">
+        <b style="color:#FF6B00;font-size:18px">${s.ucret} TL</b>
+        ${aktif ? `
+          <div style="display:flex;gap:8px">
+            ${s.durum === 'atandi' ? `<button class="btn btn-primary btn-sm" onclick="kuryeDurumGuncelle(${s.id},'alindi')">Siparisi Aldim</button>` : ''}
+            ${s.durum === 'alindi' ? `<button class="btn btn-primary btn-sm" onclick="kuryeDurumGuncelle(${s.id},'yolda')">Yola Ciktim</button>` : ''}
+            ${s.durum === 'yolda' ? `<button class="btn btn-success btn-sm" onclick="kuryeDurumGuncelle(${s.id},'teslim')">Teslim Ettim</button>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function kuryeDurumGuncelle(id, durum) {
+  await apiCall('/kurye/durum-guncelle/' + id, { method: 'PUT', body: JSON.stringify({ durum }) });
+  toast('Durum guncellendi: ' + durum, 'success');
+  sayfaYukle('kurye-siparisler');
+}
+
+async function kuryeKazancYukle(el) {
+  const veri = await apiCall('/kurye/kazanc');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Kazancim</h2>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="label">Toplam Kazanc</div><div class="value">${veri.toplam_kazanc} TL</div></div>
+      <div class="stat-card"><div class="label">Bugunku Kazanc</div><div class="value">${veri.gunluk_kazanc} TL</div></div>
+      <div class="stat-card"><div class="label">Toplam Teslimat</div><div class="value">${veri.toplam_teslim}</div></div>
+      <div class="stat-card"><div class="label">Puan</div><div class="value">&#11088; ${veri.puan}</div></div>
+    </div>
+    <div class="card">
+      <h3>Son Islemler</h3>
+      ${veri.son_islemler.length === 0 ? '<div class="empty">Henuz islem yok</div>' : ''}
+      <table>
+        <thead><tr><th>Aciklama</th><th>Tutar</th><th>Tarih</th></tr></thead>
+        <tbody>
+          ${veri.son_islemler.map(i => `
+            <tr>
+              <td>${i.aciklama} ${i.siparis ? '(#' + i.siparis.siparis_no + ')' : ''}</td>
+              <td style="font-weight:bold;color:#4CAF50">+${i.tutar} TL</td>
+              <td>${new Date(i.olusturma_tarihi).toLocaleDateString('tr-TR')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function kuryeProfilYukle(el) {
+  const veri = await apiCall('/kurye/profil');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Profilim</h2>
+    <div class="card">
+      <div style="text-align:center;padding:20px">
+        <div style="width:80px;height:80px;border-radius:50%;background:#FF6B00;color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px">&#128100;</div>
+        <h3>${veri.kullanici.ad_soyad}</h3>
+        <p style="color:#999">${veri.kullanici.telefon}</p>
+        <span class="badge badge-${veri.kullanici.durum}" style="margin-top:8px">${veri.kullanici.durum}</span>
+      </div>
+    </div>
+    ${veri.ekBilgi ? `
+      <div class="card">
+        <h3>Kurye Bilgileri</h3>
+        <table>
+          <tr><td>Arac Tipi</td><td><b>${veri.ekBilgi.arac_tipi}</b></td></tr>
+          <tr><td>Plaka</td><td><b>${veri.ekBilgi.plaka || '-'}</b></td></tr>
+          <tr><td>Puan</td><td><b>&#11088; ${veri.ekBilgi.puan}</b></td></tr>
+          <tr><td>Toplam Teslimat</td><td><b>${veri.ekBilgi.toplam_teslim}</b></td></tr>
+        </table>
+      </div>
+    ` : ''}
+  `;
+}
+
+// ===== ISLETME SAYFALARI =====
+
+async function isletmeDashboardYukle(el) {
+  const aktif = await apiCall('/isletme/aktif');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Isletme Dashboard</h2>
+    <div class="stat-cards">
+      <div class="stat-card"><div class="label">Aktif Siparis</div><div class="value">${aktif.length}</div></div>
+      <div class="stat-card"><div class="label">Bekleyen</div><div class="value">${aktif.filter(s => s.durum === 'bekliyor').length}</div></div>
+      <div class="stat-card"><div class="label">Yolda</div><div class="value">${aktif.filter(s => s.durum === 'yolda').length}</div></div>
+    </div>
+    <div class="card">
+      <h3>Aktif Siparisler</h3>
+      ${aktif.length === 0 ? '<div class="empty"><div class="icon">&#128230;</div>Aktif siparis yok</div>' : ''}
+      ${aktif.map(s => `
+        <div style="padding:12px;border-bottom:1px solid #f0f0f0">
+          <div style="display:flex;justify-content:space-between">
+            <b>#${s.siparis_no}</b>
+            ${durumBadge(s.durum)}
+          </div>
+          <div style="margin-top:6px;font-size:14px;color:#666">
+            Alici: ${s.alic_ad} | ${s.alic_adres}
+            ${s.kurye && s.kurye.kullanici ? ' | Kurye: ' + s.kurye.kullanici.ad_soyad : ''}
+          </div>
+          <div style="margin-top:4px;font-weight:bold;color:#FF6B00">${s.ucret} TL</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+async function isletmeYeniSiparisYukle(el) {
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Yeni Siparis Olustur</h2>
+    <div class="card">
+      <h3>Alici Bilgileri</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Alici Adi</label><input id="yeniAlicAd" placeholder="Mehmet Kaya"></div>
+        <div class="form-group"><label>Alici Telefon</label><input id="yeniAlicTel" placeholder="05441112233"></div>
+      </div>
+      <div class="form-group"><label>Teslimat Adresi</label><textarea id="yeniAlicAdres" rows="2" placeholder="Toroslar, Mersin"></textarea></div>
+      
+      <h3>Paket Bilgileri</h3>
+      <div class="form-group"><label>Paket Aciklamasi</label><input id="yeniPaket" placeholder="Pizza Margherita"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Oncelik</label>
+          <select id="yeniOncelik"><option value="normal">Normal</option><option value="acil">Acil (+50%)</option><option value="vip">VIP</option></select>
+        </div>
+        <div class="form-group">
+          <label>Odeme Turu</label>
+          <select id="yeniOdeme"><option value="nakit">Nakit</option><option value="kart">Kart</option><option value="fatura">Fatura</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Ucret (TL, opsiyonel - sistem hesaplar)</label><input id="yeniUcret" type="number" placeholder="45"></div>
+      
+      <button class="btn btn-primary" style="padding:14px 40px;font-size:16px" onclick="siparisOlustur()">SIPARIS OLUSTUR</button>
+    </div>
+  `;
+}
+
+async function siparisOlustur() {
+  const data = {
+    alic_ad: document.getElementById('yeniAlicAd').value,
+    alic_tel: document.getElementById('yeniAlicTel').value,
+    alic_adres: document.getElementById('yeniAlicAdres').value,
+    paket_aciklama: document.getElementById('yeniPaket').value,
+    oncelik: document.getElementById('yeniOncelik').value,
+    odeme_turu: document.getElementById('yeniOdeme').value,
+  };
+  if (!data.alic_ad || !data.alic_tel || !data.alic_adres || !data.paket_aciklama) {
+    toast('Zorunlu alanlari doldurun', 'error');
+    return;
+  }
+  const ucret = document.getElementById('yeniUcret').value;
+  if (ucret) data.ucret = parseFloat(ucret);
+  
+  await apiCall('/isletme/siparis', { method: 'POST', body: JSON.stringify(data) });
+  toast('Siparis olusturuldu!', 'success');
+  isletmeYeniSiparisYukle(document.getElementById('mainContent'));
+}
+
+async function isletmeSiparislerYukle(el) {
+  const veri = await apiCall('/isletme/siparislerim');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Siparislerim (${veri.toplam})</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Siparis No</th><th>Alici</th><th>Adres</th><th>Kurye</th><th>Ucret</th><th>Durum</th><th>Tarih</th><th>Islem</th></tr></thead>
+        <tbody>
+          ${veri.siparisler.length === 0 ? '<tr><td colspan="8" class="empty">Henuz siparis yok</td></tr>' : ''}
+          ${veri.siparisler.map(s => `
+            <tr>
+              <td><b>#${s.siparis_no}</b></td>
+              <td>${s.alic_ad}</td>
+              <td>${(s.alic_adres || '').substring(0, 30)}${s.alic_adres && s.alic_adres.length > 30 ? '...' : ''}</td>
+              <td>${s.kurye && s.kurye.kullanici ? s.kurye.kullanici.ad_soyad : '-'}</td>
+              <td><b>${s.ucret} TL</b></td>
+              <td>${durumBadge(s.durum)}</td>
+              <td>${new Date(s.olusturma_tarihi).toLocaleDateString('tr-TR')}</td>
+              <td>
+                ${['bekliyor', 'atandi'].includes(s.durum) ? `<button class="btn btn-danger btn-sm" onclick="isletmeIptal(${s.id})">Iptal</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function isletmeIptal(id) {
+  if (!confirm('Siparisi iptal etmek istediginize emin misiniz?')) return;
+  await apiCall('/isletme/siparis/' + id + '/iptal', { method: 'PUT', body: JSON.stringify({ neden: 'Isletme iptal etti' }) });
+  toast('Siparis iptal edildi', 'success');
+  sayfaYukle('isletme-siparisler');
+}
+
+async function isletmeProfilYukle(el) {
+  const profil = await apiCall('/isletme/profil');
+  el.innerHTML = `
+    <h2 style="margin-bottom:24px">Isletme Profili</h2>
+    <div class="card">
+      <div style="text-align:center;padding:20px">
+        <div style="width:80px;height:80px;border-radius:50%;background:#FF6B00;color:#fff;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px">&#127978;</div>
+        <h3>${profil.isletme_adi}</h3>
+        <p style="color:#999">${profil.isletme_turu}</p>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Isletme Bilgileri</h3>
+      <table>
+        <tr><td>Adres</td><td><b>${profil.adres || '-'}</b></td></tr>
+        <tr><td>Calisma Saati</td><td><b>${profil.calisma_saati}</b></td></tr>
+        <tr><td>Toplam Borc</td><td><b>${profil.toplam_borc || 0} TL</b></td></tr>
+      </table>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

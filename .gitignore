@@ -1,0 +1,9 @@
+node_modules/
+veritabani.sqlite
+.env
+*.log
+error.log
+output.log
+.DS_Store
+.expo/
+*.hprof
