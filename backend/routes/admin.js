@@ -188,9 +188,10 @@ router.get('/finansal', auth, yetki('admin'), async (req, res) => {
       toplam_gelir: toplamGelir || 0,
       toplam_odeme: toplamOdeme || 0,
       toplam_kurye_kazanc: toplamKuryeKazanc || 0,
-      son_islemler
+      son_islemler: sonIslemler
     });
   } catch (hata) {
+    console.error('Finansal rapor hatasi:', hata.message, hata.stack);
     res.status(500).json({ hata: 'Finansal raporlar alinamadi' });
   }
 });
