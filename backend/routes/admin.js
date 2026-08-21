@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { Kullanici, Kurye, Isletme, Siparis, FinansalIslem } = require('../models');
+const { Kullanici, Kurye, Isletme, Siparis, FinansalIslem, SiparisDurumLog } = require('../models');
 const { auth, yetki } = require('../middleware/auth');
 
 // Dashboard
@@ -158,6 +158,75 @@ router.get('/siparisler', auth, yetki('admin'), async (req, res) => {
   }
 });
 
+// Siparis detay + timeline
+router.get('/siparis/:id', auth, yetki('admin'), async (req, res) => {
+  try {
+    const siparis = await Siparis.findByPk(req.params.id, {
+      include: [
+        { model: Isletme, as: 'isletme', attributes: ['isletme_adi', 'adres'] },
+        {
+          model: Kurye,
+          as: 'kurye',
+          include: [{ model: Kullanici, as: 'kullanici', attributes: ['ad_soyad', 'telefon'] }]
+        }
+      ]
+    });
+
+    if (!siparis) return res.status(404).json({ hata: 'Siparis bulunamadi' });
+
+    const durumLoglari = await SiparisDurumLog.findAll({
+      where: { siparis_id: siparis.id },
+      include: [{ model: Kurye, as: 'kurye', include: [{ model: Kullanici, as: 'kullanici', attributes: ['ad_soyad'] }] }],
+      order: [['tiklama_zamani', 'ASC']]
+    });
+
+    const durumMetinleri = {
+      siparis_alindi: 'Siparis Alindi',
+      isletmede_bekleniyor: 'Isletmede Bekleniyor',
+      isletmeden_alindi: 'Isletmeden Alindi',
+      musteri_yolunda: 'Musteri Yolunda',
+      musteri_de: 'Musteride',
+      teslim_edildi: 'Teslim Edildi',
+      iptal: 'Iptal Edildi'
+    };
+
+    const timeline = durumLoglari.map((log, index) => {
+      let sure_dk = null;
+      let sure_sn = null;
+      if (index > 0) {
+        const onceki = new Date(durumLoglari[index - 1].tiklama_zamani).getTime();
+        const suanki = new Date(log.tiklama_zamani).getTime();
+        sure_sn = Math.round((suanki - onceki) / 1000);
+        sure_dk = Math.round(sure_sn / 60);
+      }
+      return {
+        durum: log.durum,
+        durum_adi: durumMetinleri[log.durum] || log.durum,
+        aciklama: log.aciklama,
+        tiklama_zamani: log.tiklama_zamani,
+        sure_dk,
+        sure_sn,
+        kurye_adi: log.kurye && log.kurye.kullanici ? log.kurye.kullanici.ad_soyad : null
+      };
+    });
+
+    let toplamSure_dk = null;
+    let toplamSure_sn = null;
+    if (siparis.olusturma_tarihi && siparis.teslim_tarihi) {
+      toplamSure_sn = Math.round((new Date(siparis.teslim_tarihi).getTime() - new Date(siparis.olusturma_tarihi).getTime()) / 1000);
+      toplamSure_dk = Math.round(toplamSure_sn / 60);
+    } else if (siparis.olusturma_tarihi) {
+      toplamSure_sn = Math.round((new Date().getTime() - new Date(siparis.olusturma_tarihi).getTime()) / 1000);
+      toplamSure_dk = Math.round(toplamSure_sn / 60);
+    }
+
+    res.json({ ...siparis.toJSON(), timeline, toplam_sure_dk: toplamSure_dk, toplam_sure_sn: toplamSure_sn });
+  } catch (hata) {
+    console.error('Siparis detay hatasi:', hata.message);
+    res.status(500).json({ hata: 'Siparis detayi alinamadi' });
+  }
+});
+
 // Finansal raporlar
 router.get('/finansal', auth, yetki('admin'), async (req, res) => {
   try {
@@ -225,9 +294,23 @@ router.put('/siparis/:id/atama', auth, yetki('admin'), async (req, res) => {
         return res.status(404).json({ hata: 'Kurye bulunamadi' });
       }
       await siparis.update({ kurye_id, durum: 'atandi' });
-      res.json({ mesaj: `Siparis ${kurye.kullanici_id} numarali kuryeye atandı`, siparis });
+      await kurye.update({ kurye_durum: 'siparis_aldi', musait: false, aktif_siparis_id: siparis.id });
+
+      await SiparisDurumLog.create({
+        siparis_id: siparis.id,
+        kurye_id: kurye.id,
+        durum: 'siparis_alindi',
+        aciklama: 'Admin tarafindan kurye atandı',
+        tiklama_zamani: new Date()
+      });
+
+      res.json({ mesaj: `Siparis ${kurye_id} numarali kuryeye atandı`, siparis });
     } else {
+      const eskiKurye = siparis.kurye_id ? await Kurye.findByPk(siparis.kurye_id) : null;
       await siparis.update({ kurye_id: null, durum: 'bekliyor' });
+      if (eskiKurye) {
+        await eskiKurye.update({ kurye_durum: 'bos', musait: true, aktif_siparis_id: null });
+      }
       res.json({ mesaj: 'Kurye atamasi kaldirildi', siparis });
     }
   } catch (hata) {

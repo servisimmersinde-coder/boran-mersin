@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { Kurye, Siparis, Isletme, Kullanici, KonumLog, FinansalIslem } = require('../models');
+const { Kurye, Siparis, Isletme, Kullanici, KonumLog, FinansalIslem, SiparisDurumLog } = require('../models');
 const { auth, yetki } = require('../middleware/auth');
 
 // Musaitlik durumunu degistir
@@ -148,7 +148,7 @@ router.get('/siparislerim', auth, yetki('kurye'), async (req, res) => {
     const siparisler = await Siparis.findAll({
       where: { kurye_id: kurye.id },
       include: [
-        { model: Isletme, as: 'isletme', attributes: ['isletme_adi', 'adres', 'telefon'] }
+        { model: Isletme, as: 'isletme', attributes: ['isletme_adi', 'adres'] }
       ],
       order: [['olusturma_tarihi', 'DESC']]
     });
@@ -199,6 +199,21 @@ router.post('/siparis-kabul/:id', auth, yetki('kurye'), async (req, res) => {
       durum: 'atandi'
     });
 
+    await kurye.update({
+      kurye_durum: 'siparis_aldi',
+      musait: false,
+      aktif_siparis_id: siparis.id
+    });
+
+    // Baslangic logu
+    await SiparisDurumLog.create({
+      siparis_id: siparis.id,
+      kurye_id: kurye.id,
+      durum: 'siparis_alindi',
+      aciklama: 'Siparis kabul edildi',
+      tiklama_zamani: new Date()
+    });
+
     res.json({ mesaj: 'Siparis kabul edildi', siparis });
   } catch (hata) {
     res.status(500).json({ hata: 'Siparis kabul edilemedi' });
@@ -228,7 +243,7 @@ router.post('/siparis-red/:id', auth, yetki('kurye'), async (req, res) => {
 // Durum guncelleme (siparis alindi/yolda/teslim)
 router.put('/durum-guncelle/:id', auth, yetki('kurye'), async (req, res) => {
   try {
-    const { durum, fotolar, notlar } = req.body;
+    const { durum, fotolar, notlar, enlem, boylam } = req.body;
     const siparis = await Siparis.findByPk(req.params.id);
     
     if (!siparis) {
@@ -240,6 +255,25 @@ router.put('/durum-guncelle/:id', auth, yetki('kurye'), async (req, res) => {
       return res.status(403).json({ hata: 'Bu siparis size ait degil' });
     }
 
+    // Durum eslesme map'i (frontend durumu -> log durumu)
+    const durumMap = {
+      'alindi': 'siparis_alindi',
+      'yolda': 'musteri_yolunda',
+      'teslim': 'teslim_edildi'
+    };
+
+    // Durum logu kaydet
+    const logDurum = durumMap[durum] || durum;
+    await SiparisDurumLog.create({
+      siparis_id: siparis.id,
+      kurye_id: kurye.id,
+      durum: logDurum,
+      aciklama: req.body.aciklama || null,
+      enlem: enlem || null,
+      boylam: boylam || null,
+      tiklama_zamani: new Date()
+    });
+
     const guncellemeler = { durum };
     
     if (durum === 'alindi') {
@@ -248,8 +282,7 @@ router.put('/durum-guncelle/:id', auth, yetki('kurye'), async (req, res) => {
       guncellemeler.teslim_tarihi = new Date();
       guncellemeler.odeme_durum = 'odedi';
       
-      // Kurye kazancini ekle
-      const kazanc = parseFloat(siparis.ucret) * 0.7; // %70 kuryeye
+      const kazanc = parseFloat(siparis.ucret) * 0.7;
       await FinansalIslem.create({
         kullanici_id: req.kullaniciId,
         siparis_id: siparis.id,
@@ -258,10 +291,7 @@ router.put('/durum-guncelle/:id', auth, yetki('kurye'), async (req, res) => {
         aciklama: `Siparis #${siparis.siparis_no} teslimi`
       });
 
-      // Kurye istatistiklerini guncelle
-      await kurye.update({
-        toplam_teslim: kurye.toplam_teslim + 1
-      });
+      await kurye.update({ toplam_teslim: kurye.toplam_teslim + 1 });
     }
 
     if (fotolar) guncellemeler.fotolar = fotolar;
@@ -270,6 +300,7 @@ router.put('/durum-guncelle/:id', auth, yetki('kurye'), async (req, res) => {
     await siparis.update(guncellemeler);
     res.json({ mesaj: 'Durum guncellendi', siparis });
   } catch (hata) {
+    console.error('Durum guncelleme hatasi:', hata.message);
     res.status(500).json({ hata: 'Durum guncellenemedi' });
   }
 });

@@ -6,6 +6,7 @@ const Siparis = require('./Siparis');
 const KonumLog = require('./KonumLog');
 const Bildirim = require('./Bildirim');
 const FinansalIslem = require('./FinansalIslem');
+const SiparisDurumLog = require('./SiparisDurumLog');
 
 // Iliskiler
 Kullanici.hasOne(Kurye, { foreignKey: 'kullanici_id', as: 'kurye' });
@@ -32,6 +33,12 @@ FinansalIslem.belongsTo(Kullanici, { foreignKey: 'kullanici_id', as: 'kullanici'
 Siparis.hasMany(FinansalIslem, { foreignKey: 'siparis_id', as: 'islemler' });
 FinansalIslem.belongsTo(Siparis, { foreignKey: 'siparis_id', as: 'siparis' });
 
+Siparis.hasMany(SiparisDurumLog, { foreignKey: 'siparis_id', as: 'durumLoglari' });
+SiparisDurumLog.belongsTo(Siparis, { foreignKey: 'siparis_id', as: 'siparis' });
+
+Kurye.hasMany(SiparisDurumLog, { foreignKey: 'kurye_id', as: 'durumLoglari' });
+SiparisDurumLog.belongsTo(Kurye, { foreignKey: 'kurye_id', as: 'kurye' });
+
 module.exports = {
   sequelize,
   Kullanici,
@@ -40,5 +47,6 @@ module.exports = {
   Siparis,
   KonumLog,
   Bildirim,
-  FinansalIslem
+  FinansalIslem,
+  SiparisDurumLog
 };

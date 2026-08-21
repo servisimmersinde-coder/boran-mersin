@@ -415,9 +415,9 @@ async function siparislerYukle(el) {
     <h2 style="margin-bottom:24px">Tum Siparisler</h2>
     <div class="card">
       <table>
-        <thead><tr><th>Siparis No</th><th>Isletme</th><th>Kurye</th><th>Alici</th><th>Ucret</th><th>Durum</th><th>Atama</th></tr></thead>
+        <thead><tr><th>Siparis No</th><th>Isletme</th><th>Kurye</th><th>Alici</th><th>Ucret</th><th>Durum</th><th>Atama</th><th>Detay</th></tr></thead>
         <tbody>
-          ${veri.siparisler.length === 0 ? '<tr><td colspan="7" class="empty">Henuz siparis yok</td></tr>' : ''}
+          ${veri.siparisler.length === 0 ? '<tr><td colspan="8" class="empty">Henuz siparis yok</td></tr>' : ''}
           ${veri.siparisler.map(s => `
             <tr>
               <td><b>#${s.siparis_no}</b></td>
@@ -435,12 +435,87 @@ async function siparislerYukle(el) {
                   </select>
                 `}
               </td>
+              <td>
+                <button class="btn btn-primary btn-sm" onclick="siparisDetayGoster(${s.id})">&#128269; Detay</button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     </div>
+    <div id="siparisDetayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+      <div style="background:#fff;border-radius:16px;padding:28px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;position:relative">
+        <button onclick="document.getElementById('siparisDetayModal').style.display='none'" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer">&times;</button>
+        <div id="siparisDetayIcerik">Yukleniyor...</div>
+      </div>
+    </div>
   `;
+}
+
+async function siparisDetayGoster(siparisId) {
+  const modal = document.getElementById('siparisDetayModal');
+  const icerik = document.getElementById('siparisDetayIcerik');
+  modal.style.display = 'flex';
+  icerik.innerHTML = '<div style="text-align:center;padding:20px">Yukleniyor...</div>';
+
+  try {
+    const s = await apiCall('/admin/siparis/' + siparisId);
+    const timeline = s.timeline || [];
+    const toplamSure = s.toplam_sure_dk;
+    const toplamSureSn = s.toplam_sure_sn || 0;
+
+    icerik.innerHTML = `
+      <h3 style="margin-bottom:16px">&#128230; Siparis #${s.siparis_no}</h3>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;font-size:14px">
+        <div><b>Durum:</b> ${durumBadge(s.durum)}</div>
+        <div><b>Ucret:</b> ${s.ucret} TL</div>
+        <div><b>Isletme:</b> ${s.isletme ? s.isletme.isletme_adi : '-'}</div>
+        <div><b>Kurye:</b> ${s.kurye && s.kurye.kullanici ? s.kurye.kullanici.ad_soyad : 'Atanmadi'}</div>
+        <div><b>Gonderen:</b> ${s.gonderen_ad}</div>
+        <div><b>Alici:</b> ${s.alic_ad}</div>
+        <div><b>Paket:</b> ${s.paket_aciklama}</div>
+        <div><b>Odeme:</b> ${s.odeme_turu}</div>
+        <div style="grid-column:span 2"><b>Gonderen Adres:</b> ${s.gonderen_adres}</div>
+        <div style="grid-column:span 2"><b>Alici Adres:</b> ${s.alic_adres}</div>
+      </div>
+
+      ${toplamSure !== null ? `
+        <div style="padding:10px 16px;background:#FFF3E0;border-radius:8px;margin-bottom:20px;font-size:14px;color:#FF6B00;font-weight:600">
+          &#9201; Toplam Sure: <b>${toplamSureSn >= 3600 ? Math.floor(toplamSureSn/3600) + ' saat ' + Math.floor((toplamSureSn%3600)/60) + ' dk' : toplamSureSn >= 60 ? toplamSure + ' dk ' + (toplamSureSn%60) + ' sn' : toplamSureSn + ' saniye'}</b>
+        </div>
+      ` : ''}
+
+      <h4 style="margin-bottom:12px">&#128337; Tiklama Zaman Cizelgesi</h4>
+      ${timeline.length === 0 ? '<div style="color:#999;padding:12px">Henuz tiklama kaydi yok</div>' : ''}
+
+      <div style="position:relative;padding-left:24px">
+        <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:#e0e0e0"></div>
+        ${timeline.map((adim, i) => {
+          const renk = adim.durum === 'teslim_edildi' ? '#4CAF50' : adim.durum === 'siparis_alindi' ? '#FF6B00' : adim.durum === 'iptal' ? '#F44336' : '#2196F3';
+          const tarih = new Date(adim.tiklama_zamani);
+          const zaman = tarih.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+          const tarihStr = tarih.toLocaleDateString('tr-TR');
+          return `
+            <div style="position:relative;margin-bottom:16px;padding-left:20px">
+              <div style="position:absolute;left:-20px;top:4px;width:14px;height:14px;border-radius:50%;background:${renk};border:3px solid #fff;box-shadow:0 0 0 2px ${renk}"></div>
+              <div style="font-weight:600;color:${renk};font-size:14px">${adim.durum_adi}</div>
+              <div style="font-size:12px;color:#999">${tarihStr} ${zaman}</div>
+              ${adim.kurye_adi ? `<div style="font-size:12px;color:#666">Kurye: ${adim.kurye_adi}</div>` : ''}
+              ${adim.aciklama ? `<div style="font-size:12px;color:#666;font-style:italic">${adim.aciklama}</div>` : ''}
+              ${adim.sure_sn !== null ? `
+                <div style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;margin-top:4px;background:${adim.sure_sn > 1800 ? '#FFF3F0' : '#F0FFF4'};color:${adim.sure_sn > 1800 ? '#F44336' : '#4CAF50'}">
+                  &#8595; ${adim.sure_dk > 0 ? adim.sure_dk + ' dk ' : ''}${adim.sure_sn % 60} sn gecti
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (e) {
+    icerik.innerHTML = '<div style="color:#F44336;padding:20px">Detay yuklenemedi</div>';
+  }
 }
 
 async function kuryeAta(siparisId, kuryeId) {
